@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+coverage
+.git
+.github
+.gitlab-ci.yml
+*.md
+.env
+.env.local
+.specify
+specs
+tests
+docs

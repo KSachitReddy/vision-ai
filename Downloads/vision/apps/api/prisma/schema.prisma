@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum TranslationType {
+  SIGN_TO_TEXT
+  TEXT_TO_SIGN
+  SPEECH_TO_SIGN
+  SIGN_TO_SPEECH
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          UserRole @default(USER)
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  refreshTokens          RefreshToken[]
+  translations           Translation[]
+  history                TranslationHistory[]
+  activities             ActivityLog[]
+  audits                 AuditLog[]            @relation("AuditActor")
+  sessions               RecognitionSession[]
+  accessibilityPrefs     AccessibilityPreference?
+  permissions            Permission[]          @relation("UserPermissions")
+  roleRecord             Role?                 @relation(fields: [roleId], references: [id])
+  roleId                 String?
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  permissions Permission[] @relation("RolePermissions")
+  users       User[]
+  createdAt   DateTime     @default(now())
+}
+
+model Permission {
+  id          String @id @default(uuid())
+  key         String @unique
+  description String?
+  roles       Role[] @relation("RolePermissions")
+  users       User[] @relation("UserPermissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Translation {
+  id         String          @id @default(uuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       TranslationType
+  input      String
+  output     String
+  confidence Float           @default(0)
+  createdAt  DateTime        @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model TranslationHistory {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  translationId String
+  query         String
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id])
+  action    String
+  target    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Gesture {
+  id          String   @id @default(uuid())
+  label       String   @unique
+  description String?
+  category    String   @default("alphabet")
+  createdAt   DateTime @default(now())
+}
+
+model RecognitionSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  frames    Int      @default(0)
+  meanConfidence Float @default(0)
+
+  @@index([userId])
+}
+
+model AccessibilityPreference {
+  id             String  @id @default(uuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  highContrast   Boolean @default(false)
+  largeText      Boolean @default(false)
+  reduceMotion   Boolean @default(false)
+  captionLanguage String  @default("en")
+  signLanguage   String  @default("ASL")
+}
+
+model SystemConfiguration {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}

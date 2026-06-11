@@ -1,0 +1,79 @@
+stages:
+  - validate
+  - lint
+  - typecheck
+  - test
+  - security
+  - build
+  - release
+
+default:
+  image: node:20-alpine
+  before_script:
+    - corepack enable && corepack prepare pnpm@9.0.0 --activate
+    - pnpm install --frozen-lockfile || pnpm install
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .pnpm-store/
+
+validate:
+  stage: validate
+  script:
+    - node -v
+    - pnpm -v
+    - pnpm run format:check
+
+lint:
+  stage: lint
+  script:
+    - pnpm run lint
+
+typecheck:
+  stage: typecheck
+  script:
+    - pnpm run typecheck
+
+test:
+  stage: test
+  script:
+    - pnpm run test:coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    paths:
+      - coverage/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+
+audit:
+  stage: security
+  script:
+    - pnpm audit --audit-level=high
+  allow_failure: false
+
+gitleaks:
+  stage: security
+  image: zricethezav/gitleaks:latest
+  before_script: []
+  script:
+    - gitleaks detect --config .gitleaks.toml --no-banner --verbose --redact
+
+build:
+  stage: build
+  script:
+    - pnpm run build
+  artifacts:
+    paths:
+      - apps/api/dist
+      - apps/web/dist
+    expire_in: 1 week
+
+release:
+  stage: release
+  script:
+    - echo "Release stage placeholder - integrate semantic-release or git-cliff here."
+  only:
+    - tags

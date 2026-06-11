@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: signbridge
+      POSTGRES_PASSWORD: signbridge
+      POSTGRES_DB: signbridge
+    ports:
+      - "5432:5432"
+    volumes:
+      - signbridge_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signbridge"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://signbridge:signbridge@postgres:5432/signbridge?schema=public
+      API_PORT: 8080
+      API_HOST: 0.0.0.0
+      NODE_ENV: production
+      JWT_ACCESS_SECRET: replace-me-in-production-access
+      JWT_REFRESH_SECRET: replace-me-in-production-refresh
+      CORS_ORIGIN: http://localhost:5173
+      LOG_LEVEL: info
+    ports:
+      - "8080:8080"
+
+volumes:
+  signbridge_pg:

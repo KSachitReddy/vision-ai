@@ -1,0 +1,108 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SignBridge API",
+    "version": "0.1.0",
+    "description": "REST API for the SignBridge accessibility platform.",
+    "license": { "name": "AGPL-3.0-only" }
+  },
+  "servers": [{ "url": "/api" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string" },
+          "role": { "type": "string", "enum": ["USER", "MODERATOR", "ADMIN"] }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "user": { "$ref": "#/components/schemas/User" },
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" }
+        }
+      },
+      "Translation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "input": { "type": "string" },
+          "output": { "type": "string" },
+          "confidence": { "type": "number" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": ["auth"],
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/auth/login": {
+      "post": { "summary": "Login", "tags": ["auth"], "responses": { "200": { "description": "OK" } } }
+    },
+    "/auth/refresh": {
+      "post": { "summary": "Refresh tokens", "tags": ["auth"], "responses": { "200": { "description": "OK" } } }
+    },
+    "/auth/logout": {
+      "post": { "summary": "Logout", "tags": ["auth"], "responses": { "200": { "description": "OK" } } }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Current user",
+        "tags": ["auth"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/translations": {
+      "get": {
+        "summary": "List translations",
+        "tags": ["translations"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "summary": "Create translation",
+        "tags": ["translations"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/recognition/frame": {
+      "post": {
+        "summary": "Classify a landmark frame",
+        "tags": ["recognition"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "summary": "List users",
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/admin/health": {
+      "get": {
+        "summary": "System health",
+        "tags": ["admin"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    }
+  }
+}
